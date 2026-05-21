@@ -1,0 +1,460 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Курс валют</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg: #f0f2f7;
+            --card: #ffffff;
+            --primary: #2563eb;
+            --primary-light: #eff6ff;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --text: #111827;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 1px 3px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
+            --radius: 16px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Manrope', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ─── NAVBAR ─── */
+        .navbar {
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .navbar-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text);
+        }
+        .navbar-brand img {
+            height: 44px;
+            width: 44px;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+        .brand-text strong {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 800;
+            line-height: 1.2;
+            color: var(--text);
+        }
+        .brand-text span {
+            font-size: 0.72rem;
+            color: var(--muted);
+            font-weight: 500;
+        }
+        .nav-actions { display: flex; gap: 8px; align-items: center; }
+
+        /* ─── CARDS ─── */
+        .card {
+            background: var(--card);
+            border: none;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        /* ─── STAT CARDS ─── */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 768px) { .stat-grid { grid-template-columns: 1fr; } }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 20px 24px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+            border: 2px solid transparent;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 24px rgba(0,0,0,0.1); }
+        .stat-card.active-card { border-color: var(--primary); background: var(--primary-light); }
+        .stat-card .label { font-size: 0.75rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+        .stat-card .meta { font-size: 0.78rem; color: var(--muted); display: flex; gap: 10px; align-items: center; }
+        .badge-up { background: #dcfce7; color: var(--success); border-radius: 6px; padding: 2px 7px; font-weight: 700; font-size: 0.75rem; }
+        .badge-down { background: #fee2e2; color: var(--danger); border-radius: 6px; padding: 2px 7px; font-weight: 700; font-size: 0.75rem; }
+        .badge-flat { background: #f3f4f6; color: var(--muted); border-radius: 6px; padding: 2px 7px; font-weight: 700; font-size: 0.75rem; }
+
+        /* ─── CONTROLS ─── */
+        .controls-card { padding: 16px 20px; margin-bottom: 20px; }
+        .controls-inner { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+        .currency-tabs { display: flex; gap: 6px; }
+        .tab-btn {
+            padding: 6px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: none;
+            background: #f3f4f6;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .tab-btn:hover { background: var(--primary-light); color: var(--primary); }
+        .tab-btn.active { background: var(--primary); color: #fff; }
+
+        .period-tabs { display: flex; gap: 4px; margin-left: auto; }
+        .period-btn {
+            padding: 5px 13px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            border: 1.5px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s;
+        }
+        .period-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .period-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+        /* ─── CHART ─── */
+        .chart-card { padding: 24px; margin-bottom: 20px; }
+        .section-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+
+        /* ─── BUTTONS ─── */
+        .btn-primary-custom {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: background 0.15s, transform 0.1s;
+        }
+        .btn-primary-custom:hover { background: #1d4ed8; color: #fff; transform: translateY(-1px); }
+
+        .btn-outline-custom {
+            background: transparent;
+            color: var(--text);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .btn-outline-custom:hover { border-color: var(--primary); color: var(--primary); }
+
+        .btn-danger-custom {
+            background: #fee2e2;
+            color: var(--danger);
+            border: none;
+            border-radius: 10px;
+            padding: 7px 16px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s;
+        }
+        .btn-danger-custom:hover { background: #fecaca; }
+
+        /* ─── PREDICTION BANNER ─── */
+        .prediction-row {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .prediction-pill {
+            background: var(--card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 12px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .prediction-pill .pill-icon { font-size: 1.3rem; }
+        .prediction-pill .pill-label { font-size: 0.72rem; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+        .prediction-pill .pill-value { font-size: 1rem; font-weight: 800; color: var(--text); }
+
+        /* ─── ALERT ─── */
+        .alert-info-custom {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 12px;
+            padding: 12px 18px;
+            font-size: 0.85rem;
+            color: #92400e;
+            margin-bottom: 20px;
+        }
+
+        /* ─── GUEST BANNER ─── */
+        .guest-banner {
+            background: var(--primary-light);
+            border: 1px solid #bfdbfe;
+            border-radius: 12px;
+            padding: 12px 20px;
+            font-size: 0.85rem;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════ NAVBAR ══════════ -->
+<nav class="navbar">
+    <div class="container d-flex align-items-center">
+        <a class="navbar-brand" href="/">
+            <img src="{% static 'rates/logo.webp' %}" alt="logo">
+            <div class="brand-text">
+                <strong>Курс валют</strong>
+                <span>Base: USD · Live data</span>
+            </div>
+        </a>
+        <div class="nav-actions ms-auto">
+            <a href="/converter/" class="btn-outline-custom">🔢 Конвертер</a>
+            {% if user.is_authenticated %}
+                <a href="/profile/" class="btn-outline-custom">👤 {{ user.username }}</a>
+                <a href="/settings/" class="btn-outline-custom">⚙️ Настройки</a>
+                <a href="/logout/" class="btn-danger-custom">Выйти</a>
+                <a href="/update/" class="btn-primary-custom">🔄 Обновить</a>
+            {% else %}
+                <a href="/login/" class="btn-outline-custom">Войти</a>
+                <a href="/register/" class="btn-primary-custom">Регистрация</a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+
+<!-- ══════════ MAIN ══════════ -->
+<div class="container py-4">
+
+    {% if not latest %}
+    <div class="alert-info-custom">
+        ⚠️ Данных пока нет — {% if user.is_authenticated %}нажмите <b>«Обновить»</b> чтобы загрузить актуальные курсы.{% else %}<a href="/login/" style="color:inherit;font-weight:700;">войдите</a> и нажмите «Обновить» чтобы загрузить актуальные курсы.{% endif %}
+    </div>
+    {% endif %}
+
+    {% if not user.is_authenticated %}
+    <div class="guest-banner">
+        <span>👋 Вы просматриваете курсы как гость. Войдите чтобы отслеживать свою историю и настроить алерты.</span>
+        <div style="display:flex;gap:8px;">
+            <a href="/login/" class="btn-primary-custom" style="padding:6px 16px;font-size:0.8rem;">Войти</a>
+            <a href="/register/" class="btn-outline-custom" style="padding:6px 16px;font-size:0.8rem;">Регистрация</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- ── STAT CARDS ── -->
+    <div class="stat-grid">
+        {% for stat in currency_stats %}
+        <a href="?currency={{ stat.code }}&period={{ period }}"
+           class="stat-card {% if stat.code == selected_currency %}active-card{% endif %}">
+            <div class="label">USD / {{ stat.code }}</div>
+            <div class="value">
+                {% if stat.latest %}{{ stat.latest.value|floatformat:2 }}{% else %}—{% endif %}
+            </div>
+            <div class="meta">
+                {% if stat.change is not None %}
+                    {% if stat.change > 0 %}
+                        <span class="badge-up">↑ +{{ stat.change }}%</span>
+                    {% elif stat.change < 0 %}
+                        <span class="badge-down">↓ {{ stat.change }}%</span>
+                    {% else %}
+                        <span class="badge-flat">→ 0%</span>
+                    {% endif %}
+                {% else %}
+                    <span class="badge-flat">нет данных</span>
+                {% endif %}
+                <span>за 24ч</span>
+            </div>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- ── ПРОГНОЗ ── -->
+    {% for stat in currency_stats %}
+    {% if stat.code == selected_currency and stat.prediction %}
+    <div class="prediction-row">
+        <div class="prediction-pill">
+            <span class="pill-icon">📈</span>
+            <div>
+                <div class="pill-label">Прогноз на завтра</div>
+                <div class="pill-value">{{ stat.prediction }} {{ stat.code }}</div>
+            </div>
+        </div>
+        <div class="prediction-pill">
+            <span class="pill-icon">🕐</span>
+            <div>
+                <div class="pill-label">Последнее обновление</div>
+                <div class="pill-value">
+                    {% if stat.latest %}{{ stat.latest.date|date:"d.m.Y H:i" }}{% else %}—{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="prediction-pill">
+            <span class="pill-icon">
+                {% if trend == "up" %}📈{% elif trend == "down" %}📉{% else %}➡️{% endif %}
+            </span>
+            <div>
+                <div class="pill-label">Тренд</div>
+                <div class="pill-value">
+                    {% if trend == "up" %}Растёт{% elif trend == "down" %}Падает{% else %}Стабильно{% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+
+    <!-- ── CONTROLS ── -->
+    <div class="card controls-card mb-4">
+        <div class="controls-inner">
+            <div class="currency-tabs">
+                {% for cur in currencies %}
+                <a href="?currency={{ cur }}&period={{ period }}"
+                   class="tab-btn {% if cur == selected_currency %}active{% endif %}">
+                    USD/{{ cur }}
+                </a>
+                {% endfor %}
+            </div>
+            <div class="period-tabs">
+                {% for val, label in period_choices %}
+                <a href="?currency={{ selected_currency }}&period={{ val }}"
+                   class="period-btn {% if period == val %}active{% endif %}">
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- ── CHART ── -->
+    <div class="card chart-card mb-4">
+        <div class="section-title">📈 График USD/{{ selected_currency }}</div>
+        <canvas id="rateChart" height="90"></canvas>
+    </div>
+
+</div>
+
+<!-- ══════════ CHART JS ══════════ -->
+<script>
+const labels = {{ chart_labels|safe }};
+const values = {{ chart_values|safe }};
+
+const ctx = document.getElementById('rateChart').getContext('2d');
+
+const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+gradient.addColorStop(0, 'rgba(37, 99, 235, 0.18)');
+gradient.addColorStop(1, 'rgba(37, 99, 235, 0)');
+
+new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: labels,
+        datasets: [{
+            label: 'USD/{{ selected_currency }}',
+            data: values,
+            borderColor: '#2563eb',
+            backgroundColor: gradient,
+            borderWidth: 2.5,
+            pointRadius: labels.length > 30 ? 0 : 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#fff',
+            pointBorderColor: '#2563eb',
+            pointBorderWidth: 2,
+            tension: 0.35,
+            fill: true,
+        }]
+    },
+    options: {
+        responsive: true,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                backgroundColor: '#111827',
+                titleFont: { family: 'Manrope', weight: '600', size: 12 },
+                bodyFont: { family: 'Manrope', size: 13 },
+                padding: 10,
+                cornerRadius: 10,
+                callbacks: {
+                    label: ctx => ` ${ctx.parsed.y.toFixed(2)}`
+                }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: {
+                    font: { family: 'Manrope', size: 11 },
+                    color: '#9ca3af',
+                    maxTicksLimit: 8,
+                }
+            },
+            y: {
+                grid: { color: '#f3f4f6' },
+                ticks: {
+                    font: { family: 'Manrope', size: 11 },
+                    color: '#9ca3af',
+                    callback: v => v.toFixed(2)
+                }
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

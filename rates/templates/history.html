@@ -1,0 +1,95 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>История запросов</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Manrope', sans-serif; background: #f0f2f7; }
+        .card { border: none; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); padding: 28px; }
+        .table th { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; font-weight: 700; border-bottom: 1px solid #e5e7eb; padding: 10px 12px; }
+        .table td { font-size: 0.9rem; padding: 12px; border-bottom: 1px solid #f3f4f6; vertical-align: middle; }
+        .table tbody tr:last-child td { border-bottom: none; }
+        .table tbody tr:hover td { background: #fafafa; }
+        .btn-back { background: transparent; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 7px 16px; font-size: 0.85rem; font-weight: 600; text-decoration: none; color: #111827; }
+        .btn-back:hover { border-color: #2563eb; color: #2563eb; }
+        .tab-btn { padding: 6px 16px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; border: none; background: #f3f4f6; color: #6b7280; cursor: pointer; text-decoration: none; transition: all 0.15s; }
+        .tab-btn:hover { background: #eff6ff; color: #2563eb; }
+        .tab-btn.active { background: #2563eb; color: #fff; }
+        .btn-delete { background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; padding: 4px 10px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .btn-clear { background: #fee2e2; color: #dc2626; border: none; border-radius: 8px; padding: 5px 14px; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
+        .section-title { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; margin-bottom: 0; }
+    </style>
+</head>
+<body>
+<div class="container py-4" style="max-width: 860px;">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="fw-bold mb-0">📋 История запросов</h4>
+        <a href="/profile/" class="btn-back">← Назад в профиль</a>
+    </div>
+
+    <!-- Вкладки валют -->
+    <div class="d-flex gap-2 mb-4">
+        {% for cur in currencies %}
+        <a href="?currency={{ cur }}"
+           class="tab-btn {% if cur == selected_currency %}active{% endif %}">
+            USD/{{ cur }}
+        </a>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="section-title">USD/{{ selected_currency }}</div>
+            <form method="post" action="/delete-all/"
+                  onsubmit="return confirm('Удалить всю историю USD/{{ selected_currency }}?')">
+                {% csrf_token %}
+                <input type="hidden" name="currency" value="{{ selected_currency }}">
+                <button type="submit" class="btn-clear">🗑 Очистить всё</button>
+            </form>
+        </div>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Дата и время</th>
+                    <th>Валюта</th>
+                    <th>Курс</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rate in rates %}
+                <tr>
+                    <td class="text-muted" style="font-size:0.85rem">{{ rate.date|date:"d.m.Y H:i:s" }}</td>
+                    <td>
+                        <span style="background:#eff6ff;color:#2563eb;border-radius:6px;padding:2px 8px;font-size:0.78rem;font-weight:700;">
+                            {{ rate.name }}
+                        </span>
+                    </td>
+                    <td style="font-weight:700;">{{ rate.value|floatformat:2 }}</td>
+                    <td style="text-align:right">
+                        <form method="post" action="/delete/{{ rate.id }}/">
+                            {% csrf_token %}
+                            <input type="hidden" name="currency" value="{{ selected_currency }}">
+                            <button type="submit" class="btn-delete">✕</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" style="text-align:center;color:#6b7280;padding:40px;">
+                        Нет данных. Нажмите «Обновить» на главной странице.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+</body>
+</html>
